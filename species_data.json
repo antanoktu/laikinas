@@ -1,0 +1,10 @@
+{
+  "Taraxacum officinale": {
+    "native": true,
+    "fact": "Pienės žydi nuo balandžio iki rugpjūčio. Jos lapai valgomi."
+  },
+  "Robinia pseudoacacia": {
+    "native": false,
+    "fact": "Baltasis akacijos medis dažnai laikomas invazine rūšimi."
+  }
+}

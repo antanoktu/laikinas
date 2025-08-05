@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌱 Smart Plant Identifier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .main-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 20px auto;
+            max-width: 900px;
+        }
+        .upload-area {
+            border: 3px dashed #007bff;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+            margin: 20px 0;
+        }
+        .upload-area:hover {
+            border-color: #0056b3;
+            background: #e3f2fd;
+            transform: translateY(-2px);
+        }
+        .result-card {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            display: none;
+        }
+        .error-card {
+            background: linear-gradient(45deg, #dc3545, #fd7e14);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 20px 0;
+            display: none;
+        }
+        .confidence-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .image-preview {
+            max-width: 300px;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .api-key-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .suggestions {
+            background: #e3f2fd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .suggestion-item {
+            background: white;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container p-4">
+            <div class="text-center mb-4">
+                <h1 class="display-4 text-primary">🌱 Smart Plant Identifier</h1>
+                <p class="lead text-muted">AI-powered plant identification with confidence scoring</p>
+            </div>
+
+            <!-- API Key Section -->
+            <div class="api-key-section">
+                <h6><i class="fas fa-key me-2"></i>Plant ID API Configuration</h6>
+                <div class="row">
+                    <div class="col-md-8">
+                        <input type="text" id="apiKey" class="form-control" placeholder="Enter your Plant ID API key (optional)" />
+                        <small class="text-muted">Get free API key at <a href="https://web.plant.id/api-access-request/" target="_blank">plant.id</a> (500 free requests/month)</small>
+                    </div>
+                    <div class="col-md-4">
+                        <select id="confidenceThreshold" class="form-select">
+                            <option value="0.5">50% - Low confidence</option>
+                            <option value="0.7" selected>70% - Medium confidence</option>
+                            <option value="0.8">80% - High confidence</option>
+                            <option value="0.9">90% - Very high confidence</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-lg">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <h5 class="card-title">📸 Upload Plant Image</h5>
+                        <p class="text-muted">Upload an image of a plant, tree, or flower for AI identification</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                                <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+                                <h6>Click to upload or drag & drop</h6>
+                                <p class="text-muted small">Supports JPG, PNG, GIF up to 10MB</p>
+                            </div>
+                            <input type="file" id="fileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                        </div>
+
+                        <div class="col-md-6">
+                            <div id="imagePreview" class="text-center" style="display: none;">
+                                <img id="previewImage" class="image-preview" alt="Selected plant">
+                                <br>
+                                <button class="btn btn-danger btn-sm mt-2" onclick="clearImage()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                            <div id="placeholderImage" class="text-center">
+                                <i class="fas fa-leaf fa-4x text-muted"></i>
+                                <p class="text-muted mt-2">No image selected</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="identifyButton" class="text-center mt-4" style="display: none;">
+                        <button class="btn btn-primary btn-lg" onclick="identifyPlant()">
+                            <i class="fas fa-search me-2"></i>
+                            Identify Plant
+                        </button>
+                    </div>
+
+                    <div id="loadingIndicator" class="loading">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Analyzing plant image with AI...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Success Result -->
+            <div id="resultCard" class="result-card">
+                <div class="row">
+                    <div class="col-md-8">
+                        <h4 id="plantName"></h4>
+                        <p id="confidenceText" class="mb-3"></p>
+                        <p id="plantDescription"></p>
+                        
+                        <div class="mt-4">
+                            <h6>Plant Information:</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-leaf me-2"></i>Type: <span id="plantType"></span></li>
+                                <li><i class="fas fa-sun me-2"></i>Sunlight: <span id="plantSunlight"></span></li>
+                                <li><i class="fas fa-tint me-2"></i>Water: <span id="plantWater"></span></li>
+                                <li><i class="fas fa-thermometer-half me-2"></i>Hardiness: <span id="plantHardiness"></span></li>
+                            </ul>
+                        </div>
+
+                        <div id="suggestions" class="suggestions" style="display: none;">
+                            <h6><i class="fas fa-lightbulb me-2"></i>Other possibilities:</h6>
+                            <div id="suggestionsList"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <div class="confidence-circle">
+                                <span id="confidenceCircle"></span>
+                            </div>
+                            <p class="text-white-50 small mt-2">Confidence Score</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Result -->
+            <div id="errorCard" class="error-card">
+                <div class="text-center">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                    <h4 id="errorTitle">Unable to Identify Plant</h4>
+                    <p id="errorMessage">The AI couldn't identify this plant with sufficient confidence.</p>
+                    
+                    <div class="mt-4">
+                        <h6>Suggestions:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-camera me-2"></i>Try a clearer, closer photo</li>
+                            <li><i class="fas fa-leaf me-2"></i>Focus on the leaves or flowers</li>
+                            <li><i class="fas fa-sun me-2"></i>Ensure good lighting</li>
+                            <li><i class="fas fa-undo me-2"></i>Try a different angle</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedImage = null;
+        let apiKey = '';
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    selectedImage = e.target.result;
+                    document.getElementById('previewImage').src = selectedImage;
+                    document.getElementById('imagePreview').style.display = 'block';
+                    document.getElementById('placeholderImage').style.display = 'none';
+                    document.getElementById('identifyButton').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearImage() {
+            selectedImage = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('placeholderImage').style.display = 'block';
+            document.getElementById('identifyButton').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('errorCard').style.display = 'none';
+        }
+
+        async function identifyPlant() {
+            if (!selectedImage) return;
+
+            const apiKey = document.getElementById('apiKey').value;
+            const confidenceThreshold = parseFloat(document.getElementById('confidenceThreshold').value);
+
+            // Show loading
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('identifyButton').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('errorCard').style.display = 'none';
+
+            try {
+                let result;
+                
+                if (apiKey) {
+                    // Use real Plant ID API
+                    result = await callPlantIdAPI(selectedImage, apiKey);
+                } else {
+                    // Use mock data with confidence threshold
+                    result = await getMockResult(confidenceThreshold);
+                }
+
+                if (result.confidence >= confidenceThreshold) {
+                    showSuccessResult(result);
+                } else {
+                    showErrorResult(result.confidence, confidenceThreshold);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showErrorResult(0, confidenceThreshold, 'Network error occurred');
+            } finally {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                document.getElementById('identifyButton').style.display = 'block';
+            }
+        }
+
+        async function callPlantIdAPI(imageData, apiKey) {
+            // Convert base64 to blob
+            const response = await fetch(imageData);
+            const blob = await response.blob();
+
+            const formData = new FormData();
+            formData.append('images', blob);
+            formData.append('organs', 'leaf'); // or 'flower', 'fruit', 'bark'
+
+            const response2 = await fetch('https://api.plant.id/v2/identify', {
+                method: 'POST',
+                headers: {
+                    'Api-Key': apiKey
+                },
+                body: formData
+            });
+
+            if (!response2.ok) {
+                throw new Error('API request failed');
+            }
+
+            const data = await response2.json();
+            const suggestion = data.suggestions[0];
+            
+            return {
+                name: suggestion.plant_name,
+                confidence: suggestion.probability,
+                description: suggestion.plant_details?.description || 'No description available',
+                type: suggestion.plant_details?.type || 'Unknown',
+                sunlight: suggestion.plant_details?.sunlight || 'Unknown',
+                water: suggestion.plant_details?.water || 'Unknown',
+                hardiness: suggestion.plant_details?.hardiness || 'Unknown',
+                suggestions: data.suggestions.slice(1, 4) // Other possibilities
+            };
+        }
+
+        async function getMockResult(confidenceThreshold) {
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            const mockResults = [
+                {
+                    name: "Cherry Blossom (Sakura)",
+                    confidence: 0.95,
+                    description: "A beautiful flowering tree native to Japan, known for its pink blossoms in spring.",
+                    type: "Deciduous Tree",
+                    sunlight: "Full Sun to Partial Shade",
+                    water: "Moderate",
+                    hardiness: "Zones 5-8"
+                },
+                {
+                    name: "Apple Tree (Malus domestica)",
+                    confidence: 0.87,
+                    description: "A deciduous tree that produces apples, commonly found in temperate regions.",
+                    type: "Fruit Tree",
+                    sunlight: "Full Sun",
+                    water: "Regular",
+                    hardiness: "Zones 3-8"
+                },
+                {
+                    name: "Tulip (Tulipa)",
+                    confidence: 0.92,
+                    description: "A spring-blooming perennial plant with cup-shaped flowers in various colors.",
+                    type: "Bulb",
+                    sunlight: "Full Sun",
+                    water: "Moderate",
+                    hardiness: "Zones 3-8"
+                },
+                {
+                    name: "Unknown Plant",
+                    confidence: 0.45,
+                    description: "Unable to identify with sufficient confidence.",
+                    type: "Unknown",
+                    sunlight: "Unknown",
+                    water: "Unknown",
+                    hardiness: "Unknown"
+                }
+            ];
+
+            // Randomly select result, but bias towards low confidence for demo
+            const random = Math.random();
+            if (random < 0.3) {
+                return mockResults[3]; // Unknown plant
+            } else {
+                return mockResults[Math.floor(Math.random() * 3)];
+            }
+        }
+
+        function showSuccessResult(result) {
+            document.getElementById('plantName').textContent = result.name;
+            document.getElementById('confidenceText').textContent = `Confidence: ${(result.confidence * 100).toFixed(1)}%`;
+            document.getElementById('plantDescription').textContent = result.description;
+            document.getElementById('plantType').textContent = result.type;
+            document.getElementById('plantSunlight').textContent = result.sunlight;
+            document.getElementById('plantWater').textContent = result.water;
+            document.getElementById('plantHardiness').textContent = result.hardiness;
+            document.getElementById('confidenceCircle').textContent = `${(result.confidence * 100).toFixed(0)}%`;
+
+            // Show suggestions if available
+            if (result.suggestions && result.suggestions.length > 0) {
+                const suggestionsList = document.getElementById('suggestionsList');
+                suggestionsList.innerHTML = '';
+                
+                result.suggestions.forEach(suggestion => {
+                    const div = document.createElement('div');
+                    div.className = 'suggestion-item';
+                    div.innerHTML = `
+                        <strong>${suggestion.plant_name}</strong>
+                        <small class="text-muted"> (${(suggestion.probability * 100).toFixed(1)}%)</small>
+                    `;
+                    suggestionsList.appendChild(div);
+                });
+                
+                document.getElementById('suggestions').style.display = 'block';
+            } else {
+                document.getElementById('suggestions').style.display = 'none';
+            }
+
+            document.getElementById('resultCard').style.display = 'block';
+            document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function showErrorResult(confidence, threshold, customMessage = null) {
+            const errorTitle = document.getElementById('errorTitle');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            if (customMessage) {
+                errorTitle.textContent = 'Identification Failed';
+                errorMessage.textContent = customMessage;
+            } else {
+                errorTitle.textContent = 'Unable to Identify Plant';
+                errorMessage.textContent = `Confidence level (${(confidence * 100).toFixed(1)}%) is below the threshold (${(threshold * 100).toFixed(0)}%). Please try a clearer image.`;
+            }
+
+            document.getElementById('errorCard').style.display = 'block';
+            document.getElementById('errorCard').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html> 
